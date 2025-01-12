@@ -1,43 +1,34 @@
-#!/bin/bash
+name: 批量保活进程
 
-# 假设 HOSTS_JSON 是一个包含多个账户信息的 JSON 字符串
-# 示例格式:
-# HOSTS_JSON='[{"username":"user1","host":"host1","port":22,"password":"pass1"},{"username":"user2","host":"host2","port":22,"password":"pass2"}]'
+on:
+  schedule:
+    # 使用cron表达式定义任务运行的时间
+    # github使用utc时间
+    - cron: '3 22 * * *' #北京时间6点
+  workflow_dispatch:
 
-# 打印 HOSTS_JSON 以检查格式
-echo "HOSTS_JSON: $HOSTS_JSON"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-# 解析 JSON 数据
-hosts_info=$(echo "$HOSTS_JSON" | jq -c '.[]')
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-# 定义 execute_keepalive 函数
-execute_keepalive() {
-  local user="$1"
-  local host="$2"
-  local port="$3"
-  local pass="$4"
-
-  # 这里可以添加实际的 SSH 登录逻辑
-  sshpass -p "$pass" ssh -o StrictHostKeyChecking=no -p "$port" "$user@$host" "echo '登录成功'"
-}
-
-# 主循环
-summary=""
-for info in $hosts_info; do
-  user=$(echo "$info" | jq -r ".username")
-  host=$(echo "$info" | jq -r ".host")
-  port=$(echo "$info" | jq -r ".port")
-  pass=$(echo "$info" | jq -r ".password")
-
-  echo "正在尝试登录：用户 $user，主机 $host，端口 $port"
-
-  if execute_keepalive "$user" "$host" "$port" "$pass"; then
-    msg="🟢主机 ${host}, 用户 ${user}， 登录成功!\n"
-  else
-    msg="🔴主机 ${host}, 用户 ${user}， 登录失败!\n"
-  fi
-  summary+="$msg"
-done
-
-# 输出总结信息
-echo -e "$summary"
+      - name: 安装依赖
+        run: |
+          sudo apt-get install sshpass
+          sudo apt-get install jq
+      - name: 登录各个serv00并执行保活脚本
+        env:
+          HOSTS_JSON: ${{ secrets.HOSTS_JSON }}
+          TELEGRAM_TOKEN: ${{secrets.TELEGRAM_TOKEN}}
+          TELEGRAM_USERID: ${{secrets.TELEGRAM_USERID}}
+          WXSENDKEY: ${{secrets.WXSENDKEY}}
+          SENDTYPE: ${{secrets.SENDTYPE}}
+          BUTTON_URL: ${{secrets.BUTTON_URL}}
+          AUTOUPDATE: ${{vars.AUTOUPDATE}}
+          LOGININFO: ${{vars.LOGININFO}}
+        run: |
+          chmod +x ./revive.sh
+          ./revive.sh
