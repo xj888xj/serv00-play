@@ -45,9 +45,16 @@ for info in "${hosts_info[@]}"; do
     ./tgsend.sh "Host: $host, user: $user, 登录失败，请检查!"
   fi
 
+  # 发送成功消息到 Telegram
+  if [[ "$msg" == *"成功!"* ]]; then
+    chmod +x ./tgsend.sh
+    ./tgsend.sh "$msg"
+  fi
+
   summary+="$msg"
 done
 
+# 如果需要，在最后发送汇总信息
 if [[ "$LOGININFO" == "Y" ]]; then
   chmod +x ./tgsend.sh
   ./tgsend.sh "$summary"
