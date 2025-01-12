@@ -84,7 +84,6 @@ if [[ -n "$PASS" ]]; then
   button_url=$(replaceValue $button_url PASS $pass)
 fi
 encoded_url=$(urlencode "$button_url")
-#echo "encoded_url: $encoded_url"
 reply_markup='{
     "inline_keyboard": [
       [
@@ -92,8 +91,11 @@ reply_markup='{
       ]
     ]
   }'
-#echo "reply_markup: $reply_markup"
-#echo "telegramBotToken:$telegramBotToken,telegramBotUserId:$telegramBotUserId"
+
+# 调试信息
+echo "准备发送的消息内容: $formatted_msg"
+echo "发送给用户 ID: $telegramBotUserId"
+
 if [[ -z ${telegramBotToken} ]]; then
   echo "未配置TG推送"
 else
@@ -102,11 +104,12 @@ else
     -d parse_mode="Markdown" \
     -d text="$formatted_msg" \
     -d reply_markup="$reply_markup")
+  
   if [ $? == 124 ]; then
     echo 'TG_api请求超时,请检查网络是否重启完成并是否能够访问TG'
     exit 1
   fi
-  #echo "res:$res"
+  
   resSuccess=$(echo "$res" | jq -r ".ok")
   if [[ $resSuccess = "true" ]]; then
     echo "TG推送成功"
